@@ -1,0 +1,16 @@
+{
+  "name": "quickapp-microservices-e2e",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Playwright end-to-end tests for the QuickApp microservices stack",
+  "scripts": {
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "stack:up": "node scripts/start-stack.mjs",
+    "stack:down": "docker compose -f ../src/docker-compose.yml down -v --remove-orphans"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "@types/node": "24.6.0"
+  }
+}
