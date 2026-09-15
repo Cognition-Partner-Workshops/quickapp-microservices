@@ -102,6 +102,21 @@ cd src/Services/Identity/Identity.API
 dotnet run
 ```
 
+## End-to-End Tests
+
+Playwright tests live in [`e2e/`](e2e/README.md). They start the docker compose stack, wait
+for every `/healthz`, and run API and browser tests against the gateway and services:
+
+```bash
+cd e2e
+npm ci
+npx playwright install --with-deps chromium
+npm run test:e2e
+```
+
+The same suite runs in GitHub Actions on every pull request and push to `main`
+(`.github/workflows/playwright.yml`).
+
 ## Related Repositories
 
 | Repo | Purpose |
