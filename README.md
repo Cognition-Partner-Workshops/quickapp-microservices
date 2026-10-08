@@ -116,7 +116,7 @@ dotnet run
 | DELETE | `/api/orders/{id}` | 204 |
 | GET | `/healthz`, `/readyz` | Liveness / readiness (DB check), matching the `quickapp-iac` chart probes |
 
-- **Service-to-service auth:** every `/api/orders` call must send `X-Internal-Api-Key` matching `ServiceAuth:ApiKey` (required at startup; compose default `ORDER_SERVICE_API_KEY=local-dev-order-service-key`). Health probes are anonymous. The gateway does not route `/api/orders`; clients go through the monolith.
+- **Service-to-service auth:** every `/api/orders` call must send `X-Internal-Api-Key` matching `ServiceAuth:ApiKey` (required at startup, no committed default; compose requires `ORDER_SERVICE_API_KEY`). Health probes are anonymous. The gateway does not route `/api/orders`; clients go through the monolith.
 - Contracts live in `Shared/Shared.Contracts/Orders`. The monolith carries a vendored copy under the same namespace.
 - EF Core migrations apply on startup (`Database__ApplyMigrationsOnStartup=false` to disable).
 - `X-Correlation-ID` is accepted and echoed back by `CorrelationIdMiddleware`.

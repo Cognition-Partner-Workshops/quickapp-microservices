@@ -113,6 +113,28 @@ public class OrderApiSmokeTests : IClassFixture<OrderServiceFactory>
     }
 
     [Fact]
+    public async Task Create_rejects_overflowing_amounts_instead_of_throwing()
+    {
+        var response = await _client.PostAsJsonAsync(OrderRoutes.Base, new CreateOrderRequest
+        {
+            CustomerId = 1,
+            Items = [new CreateOrderItemRequest { ProductId = 1, UnitPrice = decimal.MaxValue, Quantity = 2 }]
+        });
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+        response = await _client.PostAsJsonAsync(OrderRoutes.Base, new CreateOrderRequest
+        {
+            CustomerId = 1,
+            Items =
+            [
+                new CreateOrderItemRequest { ProductId = 1, UnitPrice = decimal.MaxValue, Quantity = 1 },
+                new CreateOrderItemRequest { ProductId = 2, UnitPrice = decimal.MaxValue, Quantity = 1 }
+            ]
+        });
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
     public async Task Update_rejects_invalid_discounts_and_totals_match_after_reload()
     {
         var createResponse = await _client.PostAsJsonAsync(OrderRoutes.Base, new CreateOrderRequest

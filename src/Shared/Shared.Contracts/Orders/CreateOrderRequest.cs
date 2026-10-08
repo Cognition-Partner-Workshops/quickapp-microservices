@@ -21,10 +21,19 @@ public sealed record CreateOrderRequest : IValidatableObject
 
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
-        var subtotal = Items.Sum(i => i.UnitPrice * i.Quantity - i.Discount);
-        if (Discount > subtotal)
-            yield return new ValidationResult(
-                "The order discount must not exceed the sum of the line totals.", [nameof(Discount)]);
+        decimal subtotal;
+        try
+        {
+            subtotal = Items.Sum(i => i.UnitPrice * i.Quantity - i.Discount);
+        }
+        catch (OverflowException)
+        {
+            return [new ValidationResult("The order total is too large.", [nameof(Items)])];
+        }
+
+        return Discount > subtotal
+            ? [new ValidationResult("The order discount must not exceed the sum of the line totals.", [nameof(Discount)])]
+            : [];
     }
 }
 
@@ -44,8 +53,18 @@ public sealed record CreateOrderItemRequest : IValidatableObject
 
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
-        if (Discount > UnitPrice * Quantity)
-            yield return new ValidationResult(
-                "The item discount must not exceed unit price times quantity.", [nameof(Discount)]);
+        decimal extended;
+        try
+        {
+            extended = UnitPrice * Quantity;
+        }
+        catch (OverflowException)
+        {
+            return [new ValidationResult("Unit price times quantity is too large.", [nameof(UnitPrice)])];
+        }
+
+        return Discount > extended
+            ? [new ValidationResult("The item discount must not exceed unit price times quantity.", [nameof(Discount)])]
+            : [];
     }
 }
