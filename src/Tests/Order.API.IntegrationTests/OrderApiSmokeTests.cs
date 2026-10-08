@@ -73,6 +73,51 @@ public class OrderApiSmokeTests : IClassFixture<OrderServiceFactory>
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
+    [Theory]
+    [InlineData(1.999, 1, 0, 0)]   // fractional cents would be rounded by decimal(18,2)
+    [InlineData(10, 1, 0.005, 0)]
+    [InlineData(10, 1, 20, 0)]     // item discount > unit price * quantity
+    [InlineData(10, 1, 0, 20)]     // order discount > line totals
+    public async Task Create_rejects_invalid_amounts(double unitPrice, int quantity, double itemDiscount,
+        double orderDiscount)
+    {
+        var response = await _client.PostAsJsonAsync(OrderRoutes.Base, new CreateOrderRequest
+        {
+            CustomerId = 1,
+            Discount = (decimal)orderDiscount,
+            Items =
+            [
+                new CreateOrderItemRequest
+                {
+                    ProductId = 1, UnitPrice = (decimal)unitPrice, Quantity = quantity, Discount = (decimal)itemDiscount
+                }
+            ]
+        });
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Update_rejects_invalid_discounts_and_totals_match_after_reload()
+    {
+        var createResponse = await _client.PostAsJsonAsync(OrderRoutes.Base, new CreateOrderRequest
+        {
+            CustomerId = 7,
+            Items = [new CreateOrderItemRequest { ProductId = 1, UnitPrice = 10.25m, Quantity = 1 }]
+        });
+        var created = await createResponse.Content.ReadFromJsonAsync<OrderDto>();
+        var fetched = await _client.GetFromJsonAsync<OrderDto>(OrderRoutes.ById(created!.Id));
+        Assert.Equal(created.Total, fetched!.Total);
+
+        Assert.Equal(HttpStatusCode.BadRequest, (await _client.PutAsJsonAsync(OrderRoutes.ById(created.Id),
+            new UpdateOrderRequest { Discount = 20m })).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await _client.PutAsJsonAsync(OrderRoutes.ById(created.Id),
+            new UpdateOrderRequest { Discount = 1.005m })).StatusCode);
+
+        var updated = await (await _client.PutAsJsonAsync(OrderRoutes.ById(created.Id),
+            new UpdateOrderRequest { Discount = 10.25m })).Content.ReadFromJsonAsync<OrderDto>();
+        Assert.Equal(0m, updated!.Total);
+    }
+
     [Fact]
     public async Task Correlation_id_is_echoed_back()
     {

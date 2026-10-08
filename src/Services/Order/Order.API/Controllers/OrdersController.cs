@@ -69,6 +69,13 @@ public class OrdersController : ControllerBase
         if (order is null)
             return NotFound();
 
+        if (request.Discount > order.Items.Sum(i => i.LineTotal))
+        {
+            ModelState.AddModelError(nameof(request.Discount),
+                "The order discount must not exceed the sum of the line totals.");
+            return ValidationProblem(ModelState);
+        }
+
         order.Discount = request.Discount;
         order.Comments = request.Comments;
         await _orders.SaveChangesAsync(cancellationToken);

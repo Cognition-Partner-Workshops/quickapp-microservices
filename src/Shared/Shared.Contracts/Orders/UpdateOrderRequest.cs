@@ -4,7 +4,8 @@ namespace Shared.Contracts.Orders;
 
 public sealed record UpdateOrderRequest
 {
-    [Range(0, double.MaxValue)]
+    /// <summary>Must not exceed the order's line-total sum; checked by order-service against stored items.</summary>
+    [Range(0, double.MaxValue), MaxDecimalPlaces(2)]
     public decimal Discount { get; init; }
 
     [StringLength(500)]
