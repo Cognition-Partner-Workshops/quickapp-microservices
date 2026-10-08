@@ -102,6 +102,29 @@ cd src/Services/Identity/Identity.API
 dotnet run
 ```
 
+## Order Service
+
+`order-service` (port 5003) owns orders extracted from the monolith, backed by PostgreSQL (`orderdb`).
+
+| Method | Route | Notes |
+|--------|-------|-------|
+| GET | `/api/orders?customerId=&cashierId=` | List, optional filters |
+| GET | `/api/orders/count?customerId=&cashierId=` | Count, optional filters |
+| GET | `/api/orders/{id}` | 404 if missing |
+| POST | `/api/orders` | `CreateOrderRequest`, returns 201 + `OrderDto` |
+| PUT | `/api/orders/{id}` | `UpdateOrderRequest` (discount, comments) |
+| DELETE | `/api/orders/{id}` | 204 |
+| GET | `/healthz`, `/readyz` | Liveness / readiness (DB check), matching the `quickapp-iac` chart probes |
+
+- Contracts live in `Shared/Shared.Contracts/Orders`. The monolith carries a vendored copy under the same namespace.
+- EF Core migrations apply on startup (`Database__ApplyMigrationsOnStartup=false` to disable).
+- `X-Correlation-ID` is accepted and echoed back by `CorrelationIdMiddleware`.
+
+```bash
+# Integration smoke tests (Docker required; uses Testcontainers PostgreSQL)
+cd src && dotnet test Tests/Order.API.IntegrationTests
+```
+
 ## Related Repositories
 
 | Repo | Purpose |
