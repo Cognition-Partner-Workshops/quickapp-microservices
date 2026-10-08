@@ -6,18 +6,34 @@ namespace Order.API.IntegrationTests;
 
 public class OrderApiSmokeTests : IClassFixture<OrderServiceFactory>
 {
+    private readonly OrderServiceFactory _factory;
     private readonly HttpClient _client;
 
     public OrderApiSmokeTests(OrderServiceFactory factory)
     {
-        _client = factory.CreateClient();
+        _factory = factory;
+        _client = factory.CreateAuthenticatedClient();
     }
 
     [Fact]
-    public async Task Health_endpoints_report_healthy()
+    public async Task Health_endpoints_report_healthy_without_api_key()
     {
-        Assert.Equal(HttpStatusCode.OK, (await _client.GetAsync("/healthz")).StatusCode);
-        Assert.Equal(HttpStatusCode.OK, (await _client.GetAsync("/readyz")).StatusCode);
+        var anonymous = _factory.CreateClient();
+        Assert.Equal(HttpStatusCode.OK, (await anonymous.GetAsync("/healthz")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await anonymous.GetAsync("/readyz")).StatusCode);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("wrong-key")]
+    public async Task Api_requires_valid_internal_api_key(string? key)
+    {
+        var client = _factory.CreateClient();
+        if (key is not null)
+            client.DefaultRequestHeaders.Add(OrderRoutes.ApiKeyHeader, key);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync(OrderRoutes.Base)).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.DeleteAsync(OrderRoutes.ById(1))).StatusCode);
     }
 
     [Fact]

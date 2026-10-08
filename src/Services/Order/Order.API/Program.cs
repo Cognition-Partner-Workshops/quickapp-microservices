@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
+using Order.API.Authentication;
 using Order.Domain.Interfaces;
 using Order.Infrastructure.Data;
 using Order.Infrastructure.Repositories;
@@ -20,12 +21,17 @@ builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 builder.Services.AddHealthChecks()
     .AddDbContextCheck<OrderDbContext>(tags: ["ready"]);
 
+var serviceApiKey = builder.Configuration["ServiceAuth:ApiKey"];
+if (string.IsNullOrWhiteSpace(serviceApiKey))
+    throw new InvalidOperationException("Configuration value 'ServiceAuth:ApiKey' is required.");
+
 var app = builder.Build();
 
 if (builder.Configuration.GetValue("Database:ApplyMigrationsOnStartup", true))
     await MigrateWithRetryAsync(app);
 
 app.UseMiddleware<CorrelationIdMiddleware>();
+app.UseMiddleware<InternalApiKeyMiddleware>(serviceApiKey);
 app.UseExceptionHandler();
 app.UseStatusCodePages();
 

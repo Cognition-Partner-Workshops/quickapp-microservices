@@ -10,6 +10,8 @@ namespace Order.API.IntegrationTests;
 /// </summary>
 public sealed class OrderServiceFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
+    public const string ApiKey = "integration-test-key";
+
     private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder(
             Environment.GetEnvironmentVariable("ORDER_TESTS_POSTGRES_IMAGE") ?? "postgres:16-alpine")
         .WithDatabase("orderdb")
@@ -26,5 +28,13 @@ public sealed class OrderServiceFactory : WebApplicationFactory<Program>, IAsync
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseSetting("ConnectionStrings:DefaultConnection", _postgres.GetConnectionString());
+        builder.UseSetting("ServiceAuth:ApiKey", ApiKey);
+    }
+
+    public HttpClient CreateAuthenticatedClient()
+    {
+        var client = CreateClient();
+        client.DefaultRequestHeaders.Add(Shared.Contracts.Orders.OrderRoutes.ApiKeyHeader, ApiKey);
+        return client;
     }
 }
